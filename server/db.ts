@@ -1,7 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { dailyReports, type DailyReport, type InsertDailyReport, type InsertUser, users } from "../drizzle/schema";
+import type { ReportData } from "../shared/report";
+import type { ReportInput } from "./reports.validation";
 import { ENV } from './_core/env';
+import { nanoid } from "nanoid";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -89,4 +92,85 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+function parseJson<T>(value: string, fallback: T): T {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function toReportData(row: DailyReport): ReportData {
+  return {
+    id: row.id,
+    date: row.reportDate,
+    vehicleNumber: row.vehicleNumber,
+    siteName: row.siteName ?? "",
+    sq: row.sq ?? "",
+    confirmer: row.confirmer ?? "",
+    inspection: parseJson(row.inspectionJson, {}),
+    damages: parseJson(row.damagesJson, []),
+    records: parseJson(row.recordsJson, []),
+  };
+}
+
+function serializeReport(ownerId: number, input: ReportInput, id: string): InsertDailyReport {
+  return {
+    id,
+    ownerId,
+    reportDate: input.date,
+    vehicleNumber: input.vehicleNumber,
+    siteName: input.siteName,
+    sq: input.sq,
+    confirmer: input.confirmer,
+    inspectionJson: JSON.stringify(input.inspection),
+    damagesJson: JSON.stringify(input.damages),
+    recordsJson: JSON.stringify(input.records),
+  };
+}
+
+export async function saveDailyReport(ownerId: number, input: ReportInput): Promise<ReportData> {
+  const db = await getDb();
+  if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
+
+  const id = input.id ?? nanoid();
+  const values = serializeReport(ownerId, input, id);
+  const existing = await db
+    .select({ id: dailyReports.id })
+    .from(dailyReports)
+    .where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    const { id: _id, ownerId: _ownerId, ...updates } = values;
+    await db.update(dailyReports).set(updates).where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)));
+  } else {
+    await db.insert(dailyReports).values(values);
+  }
+
+  return { ...input, id };
+}
+
+export async function listDailyReports(ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
+
+  const rows = await db.select().from(dailyReports).where(eq(dailyReports.ownerId, ownerId)).orderBy(desc(dailyReports.updatedAt));
+  return rows.map((row) => ({
+    id: row.id,
+    data: toReportData(row),
+    updatedAt: row.updatedAt,
+  }));
+}
+
+export async function getDailyReport(ownerId: number, id: string): Promise<ReportData | null> {
+  const db = await getDb();
+  if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
+
+  const rows = await db
+    .select()
+    .from(dailyReports)
+    .where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)))
+    .limit(1);
+  return rows[0] ? toReportData(rows[0]) : null;
+}

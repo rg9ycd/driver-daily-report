@@ -25,4 +25,24 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * 運転日報本体。可変長の点検項目・傷マーク・最大4件の運行記録は、
+ * 帳票単位で整合性を保つためJSON文字列として保存します。
+ */
+export const dailyReports = mysqlTable("daily_reports", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  reportDate: varchar("reportDate", { length: 32 }).notNull(),
+  vehicleNumber: varchar("vehicleNumber", { length: 64 }).notNull(),
+  siteName: text("siteName"),
+  sq: varchar("sq", { length: 64 }),
+  confirmer: varchar("confirmer", { length: 160 }),
+  inspectionJson: text("inspectionJson").notNull(),
+  damagesJson: text("damagesJson").notNull(),
+  recordsJson: text("recordsJson").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DailyReport = typeof dailyReports.$inferSelect;
+export type InsertDailyReport = typeof dailyReports.$inferInsert;
