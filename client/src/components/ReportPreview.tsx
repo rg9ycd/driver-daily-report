@@ -100,8 +100,9 @@ function BackPage({ data }: { data: ReportData }) {
         </table>
         <section className="damage-report-box" aria-label="車両傷チェック欄">
           <div className="damage-report-heading"><span>車両傷チェック</span><small>異常箇所に赤丸を記入</small></div>
+          <div className="damage-report-meta"><span><b>日付</b>{formatReportDate(data.date)}</span><span><b>現場名</b>{data.siteName || "未記入"}</span></div>
           <DamageCanvas marks={data.damages} readOnly />
-          <div className="damage-caption"><span>傷マーク {data.damages.length} 件</span><span>記入日 {formatReportDate(data.date)}</span></div>
+          <div className="damage-caption"><span>傷マーク {data.damages.length} 件</span><span>異常時は速やかに報告</span></div>
         </section>
       </div>
       <footer className="back-note">※ 異常があった場合は、運行管理者へ速やかに報告してください。 <span>02 / 02</span></footer>

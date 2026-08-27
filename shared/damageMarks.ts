@@ -45,3 +45,8 @@ export function getPinchZoom(currentZoom: number, previousDistance: number, next
   if (previousDistance <= 0) return clampDamageZoom(currentZoom);
   return clampDamageZoom(currentZoom * (nextDistance / previousDistance));
 }
+
+export function appendDamageHistory(history: DamageMark[][], index: number, nextMarks: DamageMark[]) {
+  const nextHistory = [...history.slice(0, index + 1), nextMarks];
+  return { history: nextHistory.slice(-50), index: Math.min(nextHistory.length - 1, 49) };
+}

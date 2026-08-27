@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
+import { appendDamageHistory, clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
 
 describe("車両傷マーク操作", () => {
   it("画面上のクリック位置を400×220の帳票座標へ変換する", () => {
@@ -31,5 +31,12 @@ describe("車両傷マーク操作", () => {
     expect(getPinchZoom(1.6, 160, 80)).toBe(1);
     expect(getPinchZoom(2.8, 100, 150)).toBe(3);
     expect(clampDamageZoom(.3)).toBe(1);
+  });
+
+  it("傷マークを戻した後に新しい操作をすると、以後のリドゥ履歴を破棄する", () => {
+    const first = [{ x: 100, y: 50 }];
+    const second = [{ x: 100, y: 50 }, { x: 200, y: 100 }];
+    const result = appendDamageHistory([[], first, second], 1, [{ x: 150, y: 80 }]);
+    expect(result).toEqual({ history: [[], first, [{ x: 150, y: 80 }]], index: 2 });
   });
 });

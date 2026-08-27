@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
+import { Maximize2, Minus, Plus, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import type { DamageMark } from "@shared/report";
-import { clampDamageZoom, DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getPinchZoom, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
+import { appendDamageHistory, clampDamageZoom, DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getPinchZoom, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
 
 const CAR_IMAGE_URL = "/manus-storage/car_e7901ad2.png";
 
@@ -15,6 +15,9 @@ type DamageCanvasProps = {
 export default function DamageCanvas({ marks, onChange, readOnly = false, className = "" }: DamageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [zoom, setZoom] = useState(1);
+  const [history, setHistory] = useState<DamageMark[][]>(() => [marks]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const expectedMarksRef = useRef(marks);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistanceRef = useRef<number | null>(null);
   const pinchActiveRef = useRef(false);
@@ -46,6 +49,29 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
   useEffect(() => {
     draw();
   }, [draw]);
+
+  useEffect(() => {
+    if (marks === expectedMarksRef.current) return;
+    expectedMarksRef.current = marks;
+    setHistory([marks]);
+    setHistoryIndex(0);
+  }, [marks]);
+
+  const applyMarks = (nextMarks: DamageMark[]) => {
+    const nextState = appendDamageHistory(history, historyIndex, nextMarks);
+    expectedMarksRef.current = nextMarks;
+    setHistory(nextState.history);
+    setHistoryIndex(nextState.index);
+    onChange?.(nextMarks);
+  };
+
+  const restoreHistory = (nextIndex: number) => {
+    const nextMarks = history[nextIndex];
+    if (!nextMarks) return;
+    expectedMarksRef.current = nextMarks;
+    setHistoryIndex(nextIndex);
+    onChange?.(nextMarks);
+  };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnly || !onChange) return;
@@ -89,14 +115,14 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
 
     const rect = canvas.getBoundingClientRect();
     const point = toDamageMark(event.clientX, event.clientY, rect);
-    onChange(toggleDamageMark(marks, point));
+    applyMarks(toggleDamageMark(marks, point));
   };
 
   const setZoomWithinRange = (amount: number) => setZoom(current => clampDamageZoom(current + amount));
 
   return (
     <div className={`damage-canvas-wrap ${readOnly ? "is-read-only" : ""} ${zoom > 1 ? "is-zoomed" : ""} ${className}`}>
-      {!readOnly && <div className="damage-zoom-controls" aria-label="車両画像の拡大縮小"><button type="button" onClick={() => setZoomWithinRange(-0.25)} disabled={zoom <= 1} aria-label="縮小"><Minus size={15} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoomWithinRange(0.25)} disabled={zoom >= 3} aria-label="拡大"><Plus size={15} /></button><button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="倍率をリセット"><RotateCcw size={14} /></button></div>}
+      {!readOnly && <div className="damage-zoom-controls" aria-label="車両画像と傷マークの操作"><button type="button" onClick={() => restoreHistory(historyIndex - 1)} disabled={historyIndex === 0} aria-label="傷マーク操作を元に戻す"><Undo2 size={15} /></button><button type="button" onClick={() => restoreHistory(historyIndex + 1)} disabled={historyIndex >= history.length - 1} aria-label="傷マーク操作をやり直す"><Redo2 size={15} /></button><span className="damage-control-divider" /><button type="button" onClick={() => setZoomWithinRange(-0.25)} disabled={zoom <= 1} aria-label="縮小"><Minus size={15} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoomWithinRange(0.25)} disabled={zoom >= 3} aria-label="拡大"><Plus size={15} /></button><button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="倍率をリセット"><RotateCcw size={14} /></button></div>}
       <div className="damage-canvas-viewport">
         <div className="damage-canvas-stage" style={{ transform: `scale(${zoom})` }}>
           <img className="damage-canvas-image" src={CAR_IMAGE_URL} alt="車両傷チェック用の車両イラスト" loading="eager" />
