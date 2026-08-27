@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { getContainedImageRect, toDamageMark, toggleDamageMark } from "./damageMarks";
+import { clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
 
 describe("車両傷マーク操作", () => {
   it("画面上のクリック位置を400×220の帳票座標へ変換する", () => {
     const point = toDamageMark(110, 75, { left: 10, top: 20, width: 200, height: 110 });
+    expect(point).toEqual({ x: 200, y: 110 });
+  });
+
+  it("中央基準で200%に拡大した表示でもクリック位置を帳票座標へ変換する", () => {
+    const point = toDamageMark(200, 110, { left: -200, top: -110, width: 800, height: 440 });
     expect(point).toEqual({ x: 200, y: 110 });
   });
 
@@ -19,5 +24,12 @@ describe("車両傷マーク操作", () => {
 
   it("縦長寄りの車両イラストをCanvas内に収め、帳票と同じ描画領域を返す", () => {
     expect(getContainedImageRect(1400, 980)).toEqual({ x: 42.85714285714286, y: 0, width: 314.2857142857143, height: 220 });
+  });
+
+  it("ピンチイン・アウトの距離比で倍率を更新し、1倍から3倍の範囲に保つ", () => {
+    expect(getPinchZoom(1, 100, 160)).toBe(1.6);
+    expect(getPinchZoom(1.6, 160, 80)).toBe(1);
+    expect(getPinchZoom(2.8, 100, 150)).toBe(3);
+    expect(clampDamageZoom(.3)).toBe(1);
   });
 });
