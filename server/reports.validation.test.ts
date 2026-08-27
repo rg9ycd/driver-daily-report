@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reportInputSchema } from "./reports.validation";
+import { reportInputSchema, reportSearchSchema } from "./reports.validation";
 
 const validReport = {
   date: "2026-08-27",
@@ -41,5 +41,24 @@ describe("reportInputSchema", () => {
 
   it("運行記録は最大4回分までに制限する", () => {
     expect(() => reportInputSchema.parse({ ...validReport, records: Array.from({ length: 5 }, () => validReport.records[0]) })).toThrow();
+  });
+
+  it("日報一覧の検索条件と主要列の並び順を受け付ける", () => {
+    const filters = reportSearchSchema.parse({
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-31",
+      vehicleNumber: "102",
+      sq: "SQ-01",
+      driver: "運転 太郎",
+      siteName: "本社",
+      sortBy: "vehicleNumber",
+      sortDirection: "asc",
+    });
+    expect(filters?.sortBy).toBe("vehicleNumber");
+    expect(filters?.driver).toBe("運転 太郎");
+  });
+
+  it("未定義のソート列を拒否する", () => {
+    expect(() => reportSearchSchema.parse({ sortBy: "password" })).toThrow();
   });
 });

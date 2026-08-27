@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, like, lte, or, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { dailyReports, type DailyReport, type InsertDailyReport, type InsertUser, users } from "../drizzle/schema";
 import type { ReportData } from "../shared/report";
@@ -114,36 +114,53 @@ function toReportData(row: DailyReport): ReportData {
   };
 }
 
-function serializeReport(ownerId: number, input: ReportInput, id: string): InsertDailyReport {
+export type ReportSearchFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  vehicleNumber?: string;
+  sq?: string;
+  driver?: string;
+  siteName?: string;
+  sortBy?: "reportDate" | "vehicleNumber" | "sq" | "driver" | "updatedAt";
+  sortDirection?: "asc" | "desc";
+};
+
+function getDriversText(records: ReportInput["records"]) {
+  return Array.from(new Set(records.map(record => record.driver.trim()).filter(Boolean))).join(" / ");
+}
+
+function serializeReport(input: ReportInput, id: string): InsertDailyReport {
   return {
     id,
-    ownerId,
+    // 共通ID運用では社員全員で同じ日報台帳を参照します。
+    ownerId: 0,
     reportDate: input.date,
     vehicleNumber: input.vehicleNumber,
     siteName: input.siteName,
     sq: input.sq,
     confirmer: input.confirmer,
+    driversText: getDriversText(input.records),
     inspectionJson: JSON.stringify(input.inspection),
     damagesJson: JSON.stringify(input.damages),
     recordsJson: JSON.stringify(input.records),
   };
 }
 
-export async function saveDailyReport(ownerId: number, input: ReportInput): Promise<ReportData> {
+export async function saveDailyReport(input: ReportInput): Promise<ReportData> {
   const db = await getDb();
   if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
 
   const id = input.id ?? nanoid();
-  const values = serializeReport(ownerId, input, id);
+  const values = serializeReport(input, id);
   const existing = await db
     .select({ id: dailyReports.id })
     .from(dailyReports)
-    .where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)))
+    .where(eq(dailyReports.id, id))
     .limit(1);
 
   if (existing.length > 0) {
     const { id: _id, ownerId: _ownerId, ...updates } = values;
-    await db.update(dailyReports).set(updates).where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)));
+    await db.update(dailyReports).set(updates).where(eq(dailyReports.id, id));
   } else {
     await db.insert(dailyReports).values(values);
   }
@@ -151,26 +168,47 @@ export async function saveDailyReport(ownerId: number, input: ReportInput): Prom
   return { ...input, id };
 }
 
-export async function listDailyReports(ownerId: number) {
+export async function listDailyReports(filters: ReportSearchFilters = {}) {
   const db = await getDb();
   if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
 
-  const rows = await db.select().from(dailyReports).where(eq(dailyReports.ownerId, ownerId)).orderBy(desc(dailyReports.updatedAt));
-  return rows.map((row) => ({
-    id: row.id,
-    data: toReportData(row),
-    updatedAt: row.updatedAt,
-  }));
+  const conditions: SQL[] = [];
+  if (filters.dateFrom) conditions.push(gte(dailyReports.reportDate, filters.dateFrom));
+  if (filters.dateTo) conditions.push(lte(dailyReports.reportDate, filters.dateTo));
+  if (filters.vehicleNumber) conditions.push(like(dailyReports.vehicleNumber, `%${filters.vehicleNumber}%`));
+  if (filters.sq) conditions.push(like(dailyReports.sq, `%${filters.sq}%`));
+  if (filters.siteName) conditions.push(like(dailyReports.siteName, `%${filters.siteName}%`));
+  if (filters.driver) conditions.push(or(like(dailyReports.driversText, `%${filters.driver}%`), like(dailyReports.recordsJson, `%${filters.driver}%`))!);
+
+  const sortColumn = {
+    reportDate: dailyReports.reportDate,
+    vehicleNumber: dailyReports.vehicleNumber,
+    sq: dailyReports.sq,
+    driver: dailyReports.driversText,
+    updatedAt: dailyReports.updatedAt,
+  }[filters.sortBy ?? "updatedAt"];
+  const orderBy = filters.sortDirection === "asc" ? asc(sortColumn) : desc(sortColumn);
+  const rows = await db.select().from(dailyReports).where(conditions.length ? and(...conditions) : undefined).orderBy(orderBy);
+
+  return rows.map((row) => {
+    const data = toReportData(row);
+    return {
+      id: row.id,
+      data,
+      drivers: getDriversText(data.records),
+      updatedAt: row.updatedAt,
+    };
+  });
 }
 
-export async function getDailyReport(ownerId: number, id: string): Promise<ReportData | null> {
+export async function getDailyReport(id: string): Promise<ReportData | null> {
   const db = await getDb();
   if (!db) throw new Error("データベースに接続できません。時間をおいて再度お試しください。");
 
   const rows = await db
     .select()
     .from(dailyReports)
-    .where(and(eq(dailyReports.id, id), eq(dailyReports.ownerId, ownerId)))
+    .where(eq(dailyReports.id, id))
     .limit(1);
   return rows[0] ? toReportData(rows[0]) : null;
 }

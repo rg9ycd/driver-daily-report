@@ -27,6 +27,20 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
+const requireCompanySession = t.middleware(async opts => {
+  if (!opts.ctx.companySession) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "COMPANY_AUTH_REQUIRED" });
+  }
+  return opts.next({
+    ctx: {
+      ...opts.ctx,
+      companySession: opts.ctx.companySession,
+    },
+  });
+});
+
+export const companyProcedure = t.procedure.use(requireCompanySession);
+
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;

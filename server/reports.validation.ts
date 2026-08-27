@@ -31,3 +31,14 @@ export const reportInputSchema = z.object({
 });
 
 export type ReportInput = z.infer<typeof reportInputSchema>;
+
+export const reportSearchSchema = z.object({
+  dateFrom: z.string().max(32).optional(),
+  dateTo: z.string().max(32).optional(),
+  vehicleNumber: z.string().max(64).optional(),
+  sq: z.string().max(64).optional(),
+  driver: z.string().max(160).optional(),
+  siteName: z.string().max(500).optional(),
+  sortBy: z.enum(["reportDate", "vehicleNumber", "sq", "driver", "updatedAt"]).optional(),
+  sortDirection: z.enum(["asc", "desc"]).optional(),
+}).optional();
