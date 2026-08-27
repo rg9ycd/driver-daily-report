@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { DamageMark } from "@shared/report";
-import { DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getContainedImageRect, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
+import { DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
 
-const CAR_IMAGE_URL = "/manus-storage/car_cae977c0.png";
+const CAR_IMAGE_URL = "/manus-storage/car_e7901ad2.png";
 
 type DamageCanvasProps = {
   marks: DamageMark[];
@@ -13,8 +13,6 @@ type DamageCanvasProps = {
 
 export default function DamageCanvas({ marks, onChange, readOnly = false, className = "" }: DamageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const carImageRef = useRef<HTMLImageElement | null>(null);
-  const [imageReady, setImageReady] = useState(false);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -22,11 +20,6 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
     if (!canvas || !context) return;
 
     context.clearRect(0, 0, DAMAGE_CANVAS_WIDTH, DAMAGE_CANVAS_HEIGHT);
-    const carImage = carImageRef.current;
-    if (carImage?.complete && carImage.naturalWidth > 0) {
-      const imageRect = getContainedImageRect(carImage.naturalWidth, carImage.naturalHeight);
-      context.drawImage(carImage, imageRect.x, imageRect.y, imageRect.width, imageRect.height);
-    }
     marks.forEach((mark, index) => {
       context.beginPath();
       context.arc(mark.x, mark.y, 11, 0, Math.PI * 2);
@@ -43,21 +36,11 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
       context.textAlign = "center";
       context.fillText(String(index + 1), mark.x, mark.y - 15);
     });
-  }, [marks, imageReady]);
+  }, [marks]);
 
   useEffect(() => {
     draw();
   }, [draw]);
-
-  useEffect(() => {
-    const image = new Image();
-    image.onload = () => {
-      carImageRef.current = image;
-      setImageReady(true);
-    };
-    image.onerror = () => setImageReady(false);
-    image.src = CAR_IMAGE_URL;
-  }, []);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnly || !onChange) return;
