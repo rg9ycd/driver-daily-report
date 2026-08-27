@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DamageMark } from "@shared/report";
-import { DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
-import VehicleSilhouette from "./VehicleSilhouette";
+import { DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getContainedImageRect, toDamageMark, toggleDamageMark } from "@shared/damageMarks";
+
+const CAR_IMAGE_URL = "/manus-storage/car_cae977c0.png";
 
 type DamageCanvasProps = {
   marks: DamageMark[];
@@ -12,6 +13,8 @@ type DamageCanvasProps = {
 
 export default function DamageCanvas({ marks, onChange, readOnly = false, className = "" }: DamageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const carImageRef = useRef<HTMLImageElement | null>(null);
+  const [imageReady, setImageReady] = useState(false);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -19,6 +22,11 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
     if (!canvas || !context) return;
 
     context.clearRect(0, 0, DAMAGE_CANVAS_WIDTH, DAMAGE_CANVAS_HEIGHT);
+    const carImage = carImageRef.current;
+    if (carImage?.complete && carImage.naturalWidth > 0) {
+      const imageRect = getContainedImageRect(carImage.naturalWidth, carImage.naturalHeight);
+      context.drawImage(carImage, imageRect.x, imageRect.y, imageRect.width, imageRect.height);
+    }
     marks.forEach((mark, index) => {
       context.beginPath();
       context.arc(mark.x, mark.y, 11, 0, Math.PI * 2);
@@ -35,11 +43,21 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
       context.textAlign = "center";
       context.fillText(String(index + 1), mark.x, mark.y - 15);
     });
-  }, [marks]);
+  }, [marks, imageReady]);
 
   useEffect(() => {
     draw();
   }, [draw]);
+
+  useEffect(() => {
+    const image = new Image();
+    image.onload = () => {
+      carImageRef.current = image;
+      setImageReady(true);
+    };
+    image.onerror = () => setImageReady(false);
+    image.src = CAR_IMAGE_URL;
+  }, []);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnly || !onChange) return;
@@ -53,14 +71,14 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
 
   return (
     <div className={`damage-canvas-wrap ${readOnly ? "is-read-only" : ""} ${className}`}>
-      <VehicleSilhouette className="damage-canvas-vehicle" />
+      <img className="damage-canvas-image" src={CAR_IMAGE_URL} alt="車両傷チェック用の車両イラスト" loading="eager" />
       <canvas
         ref={canvasRef}
         width={DAMAGE_CANVAS_WIDTH}
         height={DAMAGE_CANVAS_HEIGHT}
         onPointerDown={handlePointerDown}
         className="damage-canvas"
-        aria-label={readOnly ? "記録済みの車両傷マーク" : "車両傷チェック。車両の任意の位置をクリックすると傷マークを追加します。既存マークのクリックで削除します。"}
+        aria-label={readOnly ? "提供車両イラストへ記録済みの傷マークを重ねた図" : "提供車両イラストの傷チェック。任意の位置をクリックすると傷マークを追加します。既存マークのクリックで削除します。"}
       />
     </div>
   );

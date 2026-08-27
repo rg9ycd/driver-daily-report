@@ -11,6 +11,18 @@ type CanvasBounds = {
   height: number;
 };
 
+export function getContainedImageRect(imageWidth: number, imageHeight: number) {
+  const scale = Math.min(DAMAGE_CANVAS_WIDTH / imageWidth, DAMAGE_CANVAS_HEIGHT / imageHeight);
+  const width = imageWidth * scale;
+  const height = imageHeight * scale;
+  return {
+    x: (DAMAGE_CANVAS_WIDTH - width) / 2,
+    y: (DAMAGE_CANVAS_HEIGHT - height) / 2,
+    width,
+    height,
+  };
+}
+
 export function toDamageMark(clientX: number, clientY: number, bounds: CanvasBounds): DamageMark {
   return {
     x: Math.max(0, Math.min(DAMAGE_CANVAS_WIDTH, (clientX - bounds.left) * (DAMAGE_CANVAS_WIDTH / bounds.width))),
