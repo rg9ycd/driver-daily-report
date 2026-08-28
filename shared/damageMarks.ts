@@ -46,6 +46,17 @@ export function getPinchZoom(currentZoom: number, previousDistance: number, next
   return clampDamageZoom(currentZoom * (nextDistance / previousDistance));
 }
 
+export type DamagePan = { x: number; y: number };
+
+export function clampDamagePan(zoom: number, pan: DamagePan): DamagePan {
+  const maxX = ((clampDamageZoom(zoom) - 1) * DAMAGE_CANVAS_WIDTH) / 2;
+  const maxY = ((clampDamageZoom(zoom) - 1) * DAMAGE_CANVAS_HEIGHT) / 2;
+  return {
+    x: maxX === 0 ? 0 : Math.min(maxX, Math.max(-maxX, pan.x)),
+    y: maxY === 0 ? 0 : Math.min(maxY, Math.max(-maxY, pan.y)),
+  };
+}
+
 export function appendDamageHistory(history: DamageMark[][], index: number, nextMarks: DamageMark[]) {
   const nextHistory = [...history.slice(0, index + 1), nextMarks];
   return { history: nextHistory.slice(-50), index: Math.min(nextHistory.length - 1, 49) };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendDamageHistory, clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
+import { appendDamageHistory, clampDamagePan, clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
 
 describe("車両傷マーク操作", () => {
   it("画面上のクリック位置を400×220の帳票座標へ変換する", () => {
@@ -9,6 +9,11 @@ describe("車両傷マーク操作", () => {
 
   it("中央基準で200%に拡大した表示でもクリック位置を帳票座標へ変換する", () => {
     const point = toDamageMark(200, 110, { left: -200, top: -110, width: 800, height: 440 });
+    expect(point).toEqual({ x: 200, y: 110 });
+  });
+
+  it("パン移動した200%表示でもクリック位置を本来の傷マーク座標へ変換する", () => {
+    const point = toDamageMark(300, 110, { left: -100, top: -110, width: 800, height: 440 });
     expect(point).toEqual({ x: 200, y: 110 });
   });
 
@@ -31,6 +36,11 @@ describe("車両傷マーク操作", () => {
     expect(getPinchZoom(1.6, 160, 80)).toBe(1);
     expect(getPinchZoom(2.8, 100, 150)).toBe(3);
     expect(clampDamageZoom(.3)).toBe(1);
+  });
+
+  it("パン移動を拡大率に応じた表示範囲へ制限する", () => {
+    expect(clampDamagePan(2, { x: 250, y: -200 })).toEqual({ x: 200, y: -110 });
+    expect(clampDamagePan(1, { x: 20, y: -20 })).toEqual({ x: 0, y: 0 });
   });
 
   it("傷マークを戻した後に新しい操作をすると、以後のリドゥ履歴を破棄する", () => {
