@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH } from "@shared/damageMarks";
 
 const textField = z.string().max(500);
 
@@ -26,7 +27,7 @@ export const reportInputSchema = z.object({
   sq: z.string().max(64),
   confirmer: z.string().max(160),
   inspection: z.record(z.string().max(500), z.boolean()),
-  damages: z.array(z.object({ x: z.number().min(0).max(400), y: z.number().min(0).max(220) })).max(60),
+  damages: z.array(z.object({ x: z.number().min(0).max(DAMAGE_CANVAS_WIDTH), y: z.number().min(0).max(DAMAGE_CANVAS_HEIGHT) })).max(60),
   records: z.array(routeRecordSchema).min(1).max(4),
 });
 

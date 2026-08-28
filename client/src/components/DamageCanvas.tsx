@@ -3,7 +3,8 @@ import { Maximize2, Minus, Plus, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import type { DamageMark } from "@shared/report";
 import { appendDamageHistory, clampDamagePan, clampDamageZoom, DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getPinchZoom, toDamageMark, toggleDamageMark, type DamagePan } from "@shared/damageMarks";
 
-const CAR_IMAGE_URL = "/manus-storage/car_e7901ad2.png";
+const CAR_IMAGE_URL = "/manus-storage/car_fdd56015.webp";
+const CAR_IMAGE_CONTENT_SCALE = 1.08;
 
 type DamageCanvasProps = {
   marks: DamageMark[];
@@ -164,7 +165,7 @@ export default function DamageCanvas({ marks, onChange, readOnly = false, classN
     <div className={`damage-canvas-wrap ${readOnly ? "is-read-only" : ""} ${zoom > 1 ? "is-zoomed" : ""} ${className}`}>
       {!readOnly && <div className="damage-zoom-controls" aria-label="車両画像と傷マークの操作"><button type="button" onClick={() => restoreHistory(historyIndex - 1)} disabled={historyIndex === 0} aria-label="傷マーク操作を元に戻す"><Undo2 size={15} /></button><button type="button" onClick={() => restoreHistory(historyIndex + 1)} disabled={historyIndex >= history.length - 1} aria-label="傷マーク操作をやり直す"><Redo2 size={15} /></button><span className="damage-control-divider" /><button type="button" onClick={() => setZoomWithinRange(-0.25)} disabled={zoom <= 1} aria-label="縮小"><Minus size={15} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoomWithinRange(0.25)} disabled={zoom >= 3} aria-label="拡大"><Plus size={15} /></button><button type="button" onClick={resetViewport} disabled={zoom === 1 && pan.x === 0 && pan.y === 0} aria-label="倍率と表示位置をリセット"><RotateCcw size={14} /></button></div>}
       <div ref={viewportRef} className="damage-canvas-viewport">
-        <div className="damage-canvas-stage" style={{ transform: `translate(${(pan.x / DAMAGE_CANVAS_WIDTH) * 100}%, ${(pan.y / DAMAGE_CANVAS_HEIGHT) * 100}%) scale(${zoom})` }}>
+        <div className="damage-canvas-stage" style={{ transform: `translate(${(pan.x / DAMAGE_CANVAS_WIDTH) * 100}%, ${(pan.y / DAMAGE_CANVAS_HEIGHT) * 100}%) scale(${zoom * CAR_IMAGE_CONTENT_SCALE})` }}>
           <img className="damage-canvas-image" src={CAR_IMAGE_URL} alt="車両傷チェック用の車両イラスト" loading="eager" />
           <canvas
             ref={canvasRef}

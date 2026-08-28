@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { appendDamageHistory, clampDamagePan, clampDamageZoom, getContainedImageRect, getPinchZoom, toDamageMark, toggleDamageMark } from "./damageMarks";
+import { appendDamageHistory, clampDamagePan, clampDamageZoom, getContainedImageRect, getPinchZoom, parseStoredDamageMarks, serializeDamageMarks, toDamageMark, toggleDamageMark } from "./damageMarks";
 
 describe("車両傷マーク操作", () => {
-  it("画面上のクリック位置を400×220の帳票座標へ変換する", () => {
-    const point = toDamageMark(110, 75, { left: 10, top: 20, width: 200, height: 110 });
-    expect(point).toEqual({ x: 200, y: 110 });
+  it("画面上のクリック位置を400×566の帳票座標へ変換する", () => {
+    const point = toDamageMark(110, 303, { left: 10, top: 20, width: 200, height: 283 });
+    expect(point).toEqual({ x: 200, y: 566 });
   });
 
   it("中央基準で200%に拡大した表示でもクリック位置を帳票座標へ変換する", () => {
-    const point = toDamageMark(200, 110, { left: -200, top: -110, width: 800, height: 440 });
-    expect(point).toEqual({ x: 200, y: 110 });
+    const point = toDamageMark(200, 283, { left: -200, top: -283, width: 800, height: 1132 });
+    expect(point).toEqual({ x: 200, y: 283 });
   });
 
   it("パン移動した200%表示でもクリック位置を本来の傷マーク座標へ変換する", () => {
-    const point = toDamageMark(300, 110, { left: -100, top: -110, width: 800, height: 440 });
-    expect(point).toEqual({ x: 200, y: 110 });
+    const point = toDamageMark(300, 283, { left: -100, top: -283, width: 800, height: 1132 });
+    expect(point).toEqual({ x: 200, y: 283 });
   });
 
   it("既存マークから離れたクリックで傷マークを追加する", () => {
@@ -27,8 +27,8 @@ describe("車両傷マーク操作", () => {
     expect(marks).toEqual([{ x: 240, y: 120 }]);
   });
 
-  it("縦長寄りの車両イラストをCanvas内に収め、帳票と同じ描画領域を返す", () => {
-    expect(getContainedImageRect(1400, 980)).toEqual({ x: 42.85714285714286, y: 0, width: 314.2857142857143, height: 220 });
+  it("横長の素材でも新しい400×566のCanvas内に収め、帳票と同じ描画領域を返す", () => {
+    expect(getContainedImageRect(1400, 980)).toEqual({ x: 0, y: 143, width: 400, height: 280 });
   });
 
   it("ピンチイン・アウトの距離比で倍率を更新し、1倍から3倍の範囲に保つ", () => {
@@ -39,8 +39,22 @@ describe("車両傷マーク操作", () => {
   });
 
   it("パン移動を拡大率に応じた表示範囲へ制限する", () => {
-    expect(clampDamagePan(2, { x: 250, y: -200 })).toEqual({ x: 200, y: -110 });
+    expect(clampDamagePan(2, { x: 250, y: -400 })).toEqual({ x: 200, y: -283 });
     expect(clampDamagePan(1, { x: 20, y: -20 })).toEqual({ x: 0, y: 0 });
+  });
+
+  it("旧400×220画像の傷座標を新しい4面図の相対位置へ移行する", () => {
+    expect(parseStoredDamageMarks(JSON.stringify([{ x: 42.85714285714286, y: 0 }]))).toEqual([{ x: 0, y: 0 }]);
+    const migrated = parseStoredDamageMarks(JSON.stringify([{ x: 200, y: 110 }]));
+    expect(migrated[0].x).toBeCloseTo(200, 5);
+    expect(migrated[0].y).toBeCloseTo(283, 5);
+  });
+
+  it("新しい傷座標をバージョン付きJSONとして保存し、同じ座標で復元する", () => {
+    const marks = [{ x: 120, y: 510 }];
+    const stored = serializeDamageMarks(marks);
+    expect(JSON.parse(stored)).toEqual({ version: 2, marks });
+    expect(parseStoredDamageMarks(stored)).toEqual(marks);
   });
 
   it("傷マークを戻した後に新しい操作をすると、以後のリドゥ履歴を破棄する", () => {

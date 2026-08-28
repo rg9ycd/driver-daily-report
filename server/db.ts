@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, like, lte, or, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { dailyReports, type DailyReport, type InsertDailyReport, type InsertUser, users } from "../drizzle/schema";
 import type { ReportData } from "../shared/report";
+import { parseStoredDamageMarks, serializeDamageMarks } from "../shared/damageMarks";
 import type { ReportInput } from "./reports.validation";
 import { ENV } from './_core/env';
 import { nanoid } from "nanoid";
@@ -109,7 +110,7 @@ function toReportData(row: DailyReport): ReportData {
     sq: row.sq ?? "",
     confirmer: row.confirmer ?? "",
     inspection: parseJson(row.inspectionJson, {}),
-    damages: parseJson(row.damagesJson, []),
+    damages: parseStoredDamageMarks(row.damagesJson),
     records: parseJson(row.recordsJson, []),
   };
 }
@@ -141,7 +142,7 @@ function serializeReport(input: ReportInput, id: string): InsertDailyReport {
     confirmer: input.confirmer,
     driversText: getDriversText(input.records),
     inspectionJson: JSON.stringify(input.inspection),
-    damagesJson: JSON.stringify(input.damages),
+    damagesJson: serializeDamageMarks(input.damages),
     recordsJson: JSON.stringify(input.records),
   };
 }

@@ -21,8 +21,8 @@ function RouteRecordPreview({ record, index, date }: { record: RouteRecord; inde
     <section className="route-record">
       <div className="record-top">
         <div>{formatReportDate(date)}</div>
-        <div>{record.driver || "ドライバー"}</div>
-        <div>{record.passenger || "同乗者"}</div>
+        <div className="record-person-line"><small>（運転者）</small><CellValue>{record.driver}</CellValue></div>
+        <div className="record-person-line"><small>（同乗者）</small><CellValue>{record.passenger}</CellValue></div>
         <div>記録番号&nbsp;{index}</div>
       </div>
       <div className="record-grid">
@@ -86,6 +86,7 @@ function BackPage({ data }: { data: ReportData }) {
       </header>
       <div className="inspection-layout">
         <table className="inspection-table">
+          <colgroup><col className="inspection-category-col" /><col /></colgroup>
           <thead><tr><th>区分</th><th>点検内容</th></tr></thead>
           <tbody>
             {inspectionGroups.flatMap((group) => group.items.map((item, itemIndex) => {

@@ -8,7 +8,7 @@ const validReport = {
   sq: "SQ-01",
   confirmer: "確認 太郎",
   inspection: { "ブレーキ:確認済み": true },
-  damages: [{ x: 200, y: 110 }],
+  damages: [{ x: 200, y: 566 }],
   records: [
     {
       driver: "運転 太郎",
@@ -31,12 +31,16 @@ const validReport = {
 describe("reportInputSchema", () => {
   it("帳票、車両点検、傷マーク、運行記録を受け付ける", () => {
     const result = reportInputSchema.parse(validReport);
-    expect(result.damages).toEqual([{ x: 200, y: 110 }]);
+    expect(result.damages).toEqual([{ x: 200, y: 566 }]);
     expect(result.records).toHaveLength(1);
   });
 
   it("傷マークがCanvas座標系の範囲外なら拒否する", () => {
     expect(() => reportInputSchema.parse({ ...validReport, damages: [{ x: 401, y: 110 }] })).toThrow();
+  });
+
+  it("新しいCanvas座標の高さを超える傷マークを拒否する", () => {
+    expect(() => reportInputSchema.parse({ ...validReport, damages: [{ x: 200, y: 567 }] })).toThrow();
   });
 
   it("運行記録は最大4回分までに制限する", () => {
