@@ -1,5 +1,5 @@
 import type { ReportData, RouteRecord } from "@shared/report";
-import { formatReportDate, inspectionGroups } from "@shared/report";
+import { formatReportDate, formatVehicleNumber, inspectionGroups, PRE_OPERATION_INSPECTION_LABEL } from "@shared/report";
 import DamageCanvas from "./DamageCanvas";
 
 function FilledLine({ label, value, className = "" }: { label: string; value: string; className?: string }) {
@@ -53,7 +53,7 @@ function FrontPage({ data }: { data: ReportData }) {
     <article className="paper-page front-page">
       <header className="front-header">
         <div className="report-title-row">
-          <FilledLine label="号車" value={data.vehicleNumber} className="vehicle-line" />
+          <FilledLine label="号車" value={formatVehicleNumber(data.vehicleNumber)} className="vehicle-line" />
           <div className="report-title-wrap">
             <p>DAILY DRIVER REPORT</p>
             <h1>運 転 日 報</h1>
@@ -78,7 +78,7 @@ function BackPage({ data }: { data: ReportData }) {
     <article className="paper-page back-page">
       <header className="back-header">
         <div>
-          <p>VEHICLE PRE-OPERATION INSPECTION</p>
+          <p>{PRE_OPERATION_INSPECTION_LABEL}</p>
           <h2>車両運転前検査</h2>
         </div>
         <FilledLine label="状況確認者" value={data.confirmer} className="confirmer-line" />

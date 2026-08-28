@@ -33,6 +33,13 @@ export type ReportData = {
   records: RouteRecord[];
 };
 
+export const PRE_OPERATION_INSPECTION_LABEL = "Pre-operation inspection";
+
+export function formatVehicleNumber(value: string) {
+  const normalized = value.trim();
+  return normalized ? `${normalized}号車` : "";
+}
+
 export const inspectionGroups = [
   {
     name: "ブレーキ",
