@@ -1,3 +1,4 @@
+import React from "react";
 import type { ReportData, RouteRecord } from "@shared/report";
 import { formatReportDate, formatVehicleNumber, inspectionGroups, PRE_OPERATION_INSPECTION_LABEL } from "@shared/report";
 import DamageCanvas from "./DamageCanvas";
@@ -5,7 +6,7 @@ import DamageCanvas from "./DamageCanvas";
 function FilledLine({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
     <div className={`filled-line ${className}`}>
-      <span>{label}</span>
+      {label && <span>{label}</span>}
       <strong>{value}</strong>
     </div>
   );
@@ -53,7 +54,7 @@ function FrontPage({ data }: { data: ReportData }) {
     <article className="paper-page front-page">
       <header className="front-header">
         <div className="report-title-row">
-          <FilledLine label="号車" value={formatVehicleNumber(data.vehicleNumber)} className="vehicle-line" />
+          <FilledLine label="" value={formatVehicleNumber(data.vehicleNumber)} className="vehicle-line" />
           <div className="report-title-wrap">
             <p>DAILY DRIVER REPORT</p>
             <h1>運 転 日 報</h1>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import type { DamageMark } from "@shared/report";
 import { appendDamageHistory, clampDamagePan, clampDamageZoom, DAMAGE_CANVAS_HEIGHT, DAMAGE_CANVAS_WIDTH, getPinchZoom, toDamageMark, toggleDamageMark, type DamagePan } from "@shared/damageMarks";
